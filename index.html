@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Love Catcher Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      /* background: radial-gradient(ellipse at center, #a3d5f7 0%, #057bce 100%); */
+      background: rgba(46, 179, 179, 0.6);
+      font-family: 'Arial', sans-serif;
+    }
+
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    #message,
+    #introScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.3);
+      /* mờ nhẹ */
+      padding: 30px 25px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      z-index: 10;
+    }
+
+
+    #message {
+      display: none;
+    }
+
+    #introScreen button,
+    #restartBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background: rgba(3, 199, 238, 0.7);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #countdown {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 22px;
+      color: #ff4081;
+      font-weight: bold;
+      z-index: 10;
+    }
+
+    #introScreen button:hover,
+    #restartBtn:hover {
+      transform: scale(1.05);
+      background: rgba(1, 90, 108, 0.7);
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <canvas id="gameCanvas"></canvas>
+  <div id="introScreen">
+    <h2><strong>❤️ Welcome to Love Catcher! ❤️</strong></h2>
+    <div>Game for <strong>InOanh</strong> 🥚</div>
+    <p>Move the heart with your mouse to catch the falling love icons.<br> Avoid the painful ones! Evolve your heart as
+      you score!</p>
+    <div>Grow your heart to enough points to get <strong>SUPER REWARDS!</strong></div>
+    <h4>Gudluckkkk!!! 🐮</h4>
+    <button onclick="startGame()"><strong>START</strong></button>
+  </div>
+  <div id="message"></div>
+  <div id="countdown"></div>
+
+  <audio id="catchSound" src="sounds/catchSound.mp3"></audio>
+  <audio id="badSound" src="sounds/badSound.mp3"></audio>
+  <audio id="evolveSound" src="sounds/envolveSound.mp3"></audio>
+  <audio id="winSound" src="sounds/winSound.mp3"></audio>
+
+  <script>
+    // NỀN HIỆU ỨNG GALAXY NÂNG CẤP
+    const bgCanvas = document.getElementById("bgCanvas");
+    const bgCtx = bgCanvas.getContext("2d");
+    bgCanvas.width = window.innerWidth;
+    bgCanvas.height = window.innerHeight;
+
+    const stars = [];
+    const hearts = [];
+
+    const heartChars = ['💖', '💙', '💫', '✨'];
+    const starColors = ['rgba(255,255,255,0.6)', 'rgba(173,216,230,0.5)', 'rgba(255,255,255,0.3)'];
+
+    for (let i = 0; i < 100; i++) {
+      stars.push({
+        x: Math.random() * bgCanvas.width,
+        y: Math.random() * bgCanvas.height,
+        radius: Math.random() * 1.5,
+        dx: (Math.random() - 0.5) * 0.2,
+        dy: (Math.random() - 0.5) * 0.2,
+        color: starColors[Math.floor(Math.random() * starColors.length)]
+      });
+    }
+
+    for (let i = 0; i < 60; i++) {
+      hearts.push({
+        x: Math.random() * bgCanvas.width,
+        y: Math.random() * bgCanvas.height,
+        size: Math.random() * 20 + 10,
+        dy: Math.random() * 0.4 + 0.2,
+        char: heartChars[Math.floor(Math.random() * heartChars.length)],
+        alpha: Math.random() * 0.6 + 0.2
+      });
+    }
+
+    function animateBG() {
+      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+      for (let s of stars) {
+        bgCtx.beginPath();
+        bgCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+        bgCtx.fillStyle = s.color;
+        bgCtx.fill();
+        s.x += s.dx;
+        s.y += s.dy;
+        if (s.x < 0) s.x = bgCanvas.width;
+        if (s.x > bgCanvas.width) s.x = 0;
+        if (s.y < 0) s.y = bgCanvas.height;
+        if (s.y > bgCanvas.height) s.y = 0;
+      }
+
+      for (let h of hearts) {
+        bgCtx.font = `${h.size}px Arial`;
+        bgCtx.globalAlpha = h.alpha;
+        bgCtx.fillText(h.char, h.x, h.y);
+        bgCtx.globalAlpha = 1;
+        h.y += h.dy;
+        if (h.y > bgCanvas.height + 30) {
+          h.y = -30;
+          h.x = Math.random() * bgCanvas.width;
+          h.char = heartChars[Math.floor(Math.random() * heartChars.length)];
+        }
+      }
+
+      requestAnimationFrame(animateBG);
+    }
+    animateBG();
+  </script>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let score = 0;
+    let gameOver = false;
+    const winningScore =45;
+    const countdownTime = 40;
+
+    let countdown = countdownTime;
+    let timerInterval;
+    let spawnInterval;
+
+    const heart = {
+      x: canvas.width / 2,
+      y: canvas.height - 80,
+      size: 30,
+      speed: 10,
+      icon: '❤️'
+    };
+
+    const stages = [20, 30, 40];
+    const stageIcons = ['💖', '💘', '💗'];
+
+    const items = [];
+    const icons = ['💖', '💗', '💝', '😈', '💔', '👿', '🐮', '🥚'];
+
+    function drawHeart() {
+      ctx.font = `${heart.size}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.fillText(heart.icon, heart.x, heart.y);
+    }
+
+    function drawItem(item) {
+      ctx.font = '30px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(item.icon, item.x, item.y);
+    }
+
+    function updateItems() {
+      for (let i = items.length - 1; i >= 0; i--) {
+        items[i].y += items[i].speed;
+        drawItem(items[i]);
+
+        const dx = items[i].x - heart.x;
+        const dy = items[i].y - heart.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < heart.size) {
+          if (['😈', '💔', '👿'].includes(items[i].icon)) {
+            document.getElementById('badSound').play();
+            gameOver = true;
+            showMessage("<h3>Game Over</h3>💔Broken heart!💔");
+          } else {
+            const catchSound = document.getElementById('catchSound');
+            catchSound.currentTime = 0;
+            catchSound.play();
+            score++;
+            heart.size += 1.5;
+            updateHeartStage();
+          }
+          items.splice(i, 1);
+        } else if (items[i].y > canvas.height + 50) {
+          items.splice(i, 1);
+        }
+      }
+    }
+
+    function updateHeartStage() {
+      for (let i = 0; i < stages.length; i++) {
+        if (score === stages[i]) {
+          heart.icon = stageIcons[i];
+          const evolveSound = document.getElementById('evolveSound');
+          evolveSound.currentTime = 0;
+          evolveSound.play();
+        } else if (score > stages[i]) {
+          heart.icon = stageIcons[i];
+        }
+      }
+    }
+
+    function showMessage(text) {
+      clearInterval(timerInterval);
+      clearInterval(spawnInterval);
+      const message = document.getElementById('message');
+      message.innerHTML = text + '<br><button id="restartBtn" onclick="restartGame()"><strong>PLAY AGAIN</strong></button>';
+      message.style.display = 'block';
+    }
+
+    function updateGame() {
+      if (gameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawHeart();
+      updateItems();
+
+      ctx.fillStyle = '#ff4081';
+      ctx.font = 'bold 20px Arial';
+      ctx.fillText(`Score: ${score}`, 70, 40);
+
+      if (score >= winningScore) {
+        gameOver = true;
+        document.getElementById('winSound').play();
+        showMessage(`
+  <div style="
+    font-family: 'Segoe UI', sans-serif;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+    animation: fadeInUp 1s ease-in-out;
+  ">
+    <h1 style="
+      font-size: 48px;
+      color: #ff99cc;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px #000;
+    ">
+      🎉 Congrats, Myfavoanh!!! 🎉
+    </h1>
+    <p style="
+      font-size: 22px;
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 10px rgba(255, 153, 204, 0.4);
+      line-height: 1.6;
+    ">
+      💖 You’ve gathered every drop of love the universe could offer. <br>
+Just like in real life, you hold my heart gently — and keep it safe through every moment. <br>
+Happy <strong>6 months</strong> of love, laughter, and us!!! <br>
+<small style="opacity: 0.7; font-style: italic;">CODE: 79AYEVKL26</small>
+    </p>
+  </div>
+`);
+
+        return;
+      }
+
+      requestAnimationFrame(updateGame);
+    }
+
+    function spawnItem() {
+      const icon = icons[Math.floor(Math.random() * icons.length)];
+      const x = Math.random() * canvas.width;
+      const speed = 3 + Math.random() * 3 + score * 0.15;
+      items.push({ icon, x, y: -30, speed });
+    }
+
+    function startCountdown() {
+      const countdownEl = document.getElementById('countdown');
+      countdownEl.textContent = `Time: ${countdown}s`;
+      timerInterval = setInterval(() => {
+        countdown--;
+        countdownEl.textContent = `Time: ${countdown}s`;
+        if (countdown <= 0) {
+          clearInterval(timerInterval);
+          gameOver = true;
+          document.getElementById('badSound').play();
+          showMessage("<h3>Time's Up!</h3>Better luck next time 💔");
+        }
+      }, 1000);
+    }
+
+    function startGame() {
+      document.getElementById('introScreen').style.display = 'none';
+      document.getElementById('message').style.display = 'none';
+      score = 0;
+      countdown = countdownTime;
+      gameOver = false;
+      heart.size = 30;
+      heart.icon = '❤️';
+      items.length = 0;
+      updateGame();
+      startCountdown();
+      spawnInterval = setInterval(spawnItem, 300);
+    }
+
+    function restartGame() {
+      startGame();
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      heart.x = e.clientX;
+    });
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      bgCanvas.width = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+
+</html>
